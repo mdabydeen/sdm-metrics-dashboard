@@ -1,0 +1,36 @@
+teams:
+  - id: payments-backend
+    name: Payments Backend
+    sdm: Jane Smith
+    director: Bob Director
+    department: Engineering
+    jira_board_ids:
+      - 42
+    github_repos:
+      - org/payments-api
+      - org/payments-worker
+    engineers:
+      - jira_id: "user:1a2b3c4d5e6f7g8h"
+        name: Alice Engineer
+        github: alicedev
+      - jira_id: "user:2b3c4d5e6f7g8h9i"
+        name: Bob Developer
+        github: bobdev
+
+  - id: platform-infra
+    name: Platform Infrastructure
+    sdm: John SDM
+    director: Bob Director
+    department: Engineering
+    jira_board_ids:
+      - 15
+    github_repos:
+      - org/infra-core
+      - org/infra-monitoring
+    engineers:
+      - jira_id: "user:3c4d5e6f7g8h9i0j"
+        name: Carlos Platform
+        github: carlosp
+      - jira_id: "user:4d5e6f7g8h9i0j1k"
+        name: Diana DevOps
+        github: dianad

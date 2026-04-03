@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  grafana:
+    image: grafana/grafana-oss:10.4.0
+    container_name: sdm-grafana
+    platform: linux/amd64
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./data:/data
+      - grafana_storage:/var/lib/grafana
+    environment:
+      - GF_INSTALL_PLUGINS=frser-sqlite-datasource,marcusolsson-gantt-panel
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    networks:
+      - sdm-network
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestion
+    container_name: sdm-ingestion
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./src:/app/src
+      - ./db:/app/db
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - sdm-network
+    # Start the capacity app + scheduler in parallel
+    command: >
+      sh -c "
+        echo 'Initializing database...' &&
+        python -m src.db.seed &&
+        echo 'Starting ingestion scheduler...' &&
+        python -m src.scheduler &
+        echo 'Starting capacity input app...' &&
+        uvicorn src.capacity.app:app --host 0.0.0.0 --port 8000
+      "
+    ports:
+      - "8000:8000"
+
+volumes:
+  grafana_storage:
+
+networks:
+  sdm-network:
+    driver: bridge

@@ -1,0 +1,248 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "SDM Metrics (SQLite)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT s.start_date as time, s.sprint_name, sm.velocity, sm.committed_points FROM sprint_metrics sm JOIN sprints s ON s.sprint_id = sm.sprint_id WHERE sm.team_id = '$team_id' ORDER BY s.start_date DESC LIMIT 12",
+          "rawSql": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Sprint Velocity Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "SDM Metrics (SQLite)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "fields": "",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT ROUND(AVG(commitment_accuracy) * 100, 1) as value FROM sprint_metrics WHERE team_id = '$team_id' AND computed_at >= datetime('now', '-90 days')",
+          "rawSql": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Commitment Accuracy (90d avg)",
+      "type": "gauge"
+    },
+    {
+      "datasource": "SDM Metrics (SQLite)",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "format": "table",
+          "queryText": "SELECT e.display_name, sc.available_days, sc.total_days, ROUND(sc.available_days / sc.total_days * 100, 0) as availability_pct, sc.notes FROM sprint_capacity sc JOIN engineers e ON e.engineer_id = sc.engineer_id WHERE sc.sprint_id = (SELECT sprint_id FROM sprints WHERE team_id = '$team_id' AND state = 'active' LIMIT 1) ORDER BY e.display_name",
+          "rawSql": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Team Capacity (Current Sprint)",
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 27,
+  "style": "dark",
+  "tags": [
+    "sdm",
+    "velocity",
+    "capacity"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "payments-backend",
+          "value": "payments-backend"
+        },
+        "datasource": "SDM Metrics (SQLite)",
+        "definition": "SELECT team_id as __value, team_name as __text FROM teams ORDER BY team_name",
+        "description": "Select SDM team",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Team",
+        "multi": false,
+        "name": "team_id",
+        "options": [],
+        "query": "SELECT team_id as __value, team_name as __text FROM teams ORDER BY team_name",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "datasource",
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "SDM Team Dashboard",
+  "uid": "sdm-team",
+  "version": 1
+}
