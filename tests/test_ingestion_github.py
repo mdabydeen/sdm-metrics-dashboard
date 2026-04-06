@@ -25,12 +25,16 @@ def reset_config():
 # DB fixture with required FK rows
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def db_config(tmp_path):
     db_file = tmp_path / "github_test.db"
     conn = sqlite3.connect(str(db_file))
     conn.executescript(SCHEMA_SQL.read_text())
-    for team_id, name in [("payments-backend", "Payments Backend"), ("platform-infra", "Platform Infra")]:
+    for team_id, name in [
+        ("payments-backend", "Payments Backend"),
+        ("platform-infra", "Platform Infra"),
+    ]:
         conn.execute(
             "INSERT OR IGNORE INTO teams (team_id, team_name) VALUES (?, ?)", (team_id, name)
         )
@@ -46,6 +50,7 @@ def db_config(tmp_path):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_pr(number=1, repo_full="org/payments-api", state="open", title="Fix bug"):
     return {
@@ -85,6 +90,7 @@ def _mock_response(json_data, status_code=200):
 # GithubPRIngestor – _headers
 # ---------------------------------------------------------------------------
 
+
 class TestGithubPRIngestorHeaders:
     def test_headers_contain_auth_token(self, app_config):
         ing = GithubPRIngestor(app_config)
@@ -97,15 +103,16 @@ class TestGithubPRIngestorHeaders:
 # GithubPRIngestor – fetch_raw
 # ---------------------------------------------------------------------------
 
+
 class TestGithubPRIngestorFetchRaw:
     def test_fetches_prs_for_all_repos(self, app_config):
         """Should iterate each repo and collect PRs."""
         pr_page = [_make_pr(1, "org/payments-api"), _make_pr(2, "org/payments-api")]
         # Return one page of results (< 100 items stops pagination automatically)
         responses = [
-            _mock_response(pr_page),                            # payments-api: 2 PRs (< 100, stops)
+            _mock_response(pr_page),  # payments-api: 2 PRs (< 100, stops)
             _mock_response([_make_pr(3, "org/payments-worker")]),  # payments-worker: 1 PR
-            _mock_response([_make_pr(4, "org/infra-core")]),      # infra-core: 1 PR
+            _mock_response([_make_pr(4, "org/infra-core")]),  # infra-core: 1 PR
         ]
 
         ing = GithubPRIngestor(app_config)
@@ -154,10 +161,10 @@ class TestGithubPRIngestorFetchRaw:
         good_prs = [_make_pr(1, "org/payments-worker")]
 
         responses = [
-            bad_resp,                           # payments-api fails
-            _mock_response(good_prs),           # payments-worker ok
-            _mock_response([]),                 # stop
-            _mock_response([]),                 # infra-core
+            bad_resp,  # payments-api fails
+            _mock_response(good_prs),  # payments-worker ok
+            _mock_response([]),  # stop
+            _mock_response([]),  # infra-core
         ]
 
         ing = GithubPRIngestor(app_config)
@@ -191,6 +198,7 @@ class TestGithubPRIngestorFetchRaw:
 # ---------------------------------------------------------------------------
 # GithubPRIngestor – normalize
 # ---------------------------------------------------------------------------
+
 
 class TestGithubPRIngestorNormalize:
     def test_normalize_maps_fields(self, app_config):
@@ -242,6 +250,7 @@ class TestGithubPRIngestorNormalize:
 # GithubDeploymentIngestor – _headers
 # ---------------------------------------------------------------------------
 
+
 class TestGithubDeploymentIngestorHeaders:
     def test_headers_contain_auth_token(self, app_config):
         ing = GithubDeploymentIngestor(app_config)
@@ -252,6 +261,7 @@ class TestGithubDeploymentIngestorHeaders:
 # ---------------------------------------------------------------------------
 # GithubDeploymentIngestor – fetch_raw
 # ---------------------------------------------------------------------------
+
 
 class TestGithubDeploymentIngestorFetchRaw:
     def test_fetches_deployments_for_all_repos(self, app_config):
@@ -309,6 +319,7 @@ class TestGithubDeploymentIngestorFetchRaw:
 # GithubDeploymentIngestor – normalize
 # ---------------------------------------------------------------------------
 
+
 class TestGithubDeploymentIngestorNormalize:
     def test_normalize_maps_fields(self, app_config):
         raw = [_make_deployment(1001, "org/payments-api")]
@@ -346,6 +357,7 @@ class TestGithubDeploymentIngestorNormalize:
 # Full run() integration
 # ---------------------------------------------------------------------------
 
+
 class TestGithubPRIngestorRun:
     def test_run_inserts_prs_into_db(self, app_config, db_config):
         pr = _make_pr(1, "org/payments-api")
@@ -361,7 +373,10 @@ class TestGithubPRIngestorRun:
         ]
 
         ing = GithubPRIngestor(app_config)
-        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+        with (
+            patch("requests.get", side_effect=responses),
+            patch("src.db.connection.get_config", return_value=db_config),
+        ):
             count = ing.run()
 
         assert count >= 1
@@ -369,6 +384,9 @@ class TestGithubPRIngestorRun:
     def test_run_empty_fetch_returns_zero(self, app_config, db_config):
         responses = [_mock_response([]) for _ in range(6)]
         ing = GithubPRIngestor(app_config)
-        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+        with (
+            patch("requests.get", side_effect=responses),
+            patch("src.db.connection.get_config", return_value=db_config),
+        ):
             count = ing.run()
         assert count == 0

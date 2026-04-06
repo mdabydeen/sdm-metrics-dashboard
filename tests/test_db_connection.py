@@ -68,6 +68,7 @@ class TestGetConnection:
         }
         with patch("src.db.connection.get_config", return_value=config):
             import builtins
+
             original_import = builtins.__import__
 
             def mock_import(name, *args, **kwargs):
@@ -75,7 +76,10 @@ class TestGetConnection:
                     raise ImportError("No module named 'psycopg2'")
                 return original_import(name, *args, **kwargs)
 
-            with patch("builtins.__import__", side_effect=mock_import), pytest.raises(ImportError, match="psycopg2 required"):
+            with (
+                patch("builtins.__import__", side_effect=mock_import),
+                pytest.raises(ImportError, match="psycopg2 required"),
+            ):
                 get_connection()
 
     def test_postgresql_uses_psycopg2(self):
@@ -88,7 +92,10 @@ class TestGetConnection:
         mock_psycopg2 = MagicMock()
         mock_psycopg2.connect.return_value = mock_conn
 
-        with patch("src.db.connection.get_config", return_value=config), patch.dict("sys.modules", {"psycopg2": mock_psycopg2}):
+        with (
+            patch("src.db.connection.get_config", return_value=config),
+            patch.dict("sys.modules", {"psycopg2": mock_psycopg2}),
+        ):
             conn = get_connection()
 
         mock_psycopg2.connect.assert_called_once_with("postgresql://user:pass@localhost/db")

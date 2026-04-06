@@ -57,9 +57,7 @@ class JiraSprintIngestor(BaseIngestor):
                 {
                     "sprint_id": sprint["id"],
                     "board_id": sprint.get("originBoardId", 0),
-                    "team_id": board_to_team.get(
-                        str(sprint.get("originBoardId", "")), "unknown"
-                    ),
+                    "team_id": board_to_team.get(str(sprint.get("originBoardId", "")), "unknown"),
                     "sprint_name": sprint.get("name", ""),
                     "state": sprint.get("state", ""),
                     "start_date": sprint.get("startDate"),
@@ -169,7 +167,11 @@ class JiraIssueIngestor(BaseIngestor):
                 history_dt = datetime.fromisoformat(history_created.replace("Z", "+00:00"))
                 if history_dt < now:
                     for item in history.get("items", []):
-                        if item.get("fieldId") == sprint_field and item.get("toString") and item.get("fromString"):
+                        if (
+                            item.get("fieldId") == sprint_field
+                            and item.get("toString")
+                            and item.get("fromString")
+                        ):
                             # Sprint changed mid-sprint — mark as unplanned
                             is_unplanned = 1
             except (ValueError, TypeError):

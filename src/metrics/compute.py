@@ -22,13 +22,16 @@ class MetricsComputer:
             cursor = conn.cursor()
 
             # Fetch all issues in this sprint
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     issue_id, issue_type, status, story_points,
                     started_at, resolved_at, is_unplanned
                 FROM issues
                 WHERE sprint_id = ? AND team_id = ?
-            """, (sprint_id, team_id))
+            """,
+                (sprint_id, team_id),
+            )
             issues = [dict(row) for row in cursor.fetchall()]
 
             if not issues:
@@ -48,9 +51,7 @@ class MetricsComputer:
 
             # Committed points: sum of all issues that were not marked as unplanned
             committed_points = sum(
-                (i.get("story_points") or 0)
-                for i in issues
-                if not i.get("is_unplanned", 0)
+                (i.get("story_points") or 0) for i in issues if not i.get("is_unplanned", 0)
             )
 
             # Commitment accuracy
@@ -73,13 +74,18 @@ class MetricsComputer:
             avg_cycle_time_hrs = sum(cycle_times) / len(cycle_times) if cycle_times else 0.0
 
             # Fetch capacity for this sprint
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT SUM(available_days) as total_days
                 FROM sprint_capacity
                 WHERE sprint_id = ?
-            """, (sprint_id,))
+            """,
+                (sprint_id,),
+            )
             capacity_row = cursor.fetchone()
-            capacity_total_days = capacity_row["total_days"] if capacity_row and capacity_row["total_days"] else 0.0
+            capacity_total_days = (
+                capacity_row["total_days"] if capacity_row and capacity_row["total_days"] else 0.0
+            )
 
             # Utilization: velocity / (capacity_total_days * story_points_per_day)
             # Default: 4 story points per day of capacity
@@ -112,10 +118,12 @@ class MetricsComputer:
             cursor = conn.cursor()
 
             # Get all unique sprint/team combinations
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT DISTINCT sprint_id, team_id FROM issues
                 WHERE sprint_id IS NOT NULL AND team_id IS NOT NULL AND team_id != 'unknown'
-            """)
+            """
+            )
             sprint_teams = [dict(row) for row in cursor.fetchall()]
 
         upserted = 0

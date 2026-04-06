@@ -86,9 +86,11 @@ def _validate_config(config: dict):
 
     if not jira_token:
         import logging
+
         logging.warning("JIRA_API_TOKEN is not set. JIRA ingestion will fail with 401 errors.")
     if not github_token:
         import logging
+
         logging.warning("GITHUB_TOKEN is not set. GitHub ingestion will fail with 401 errors.")
 
 

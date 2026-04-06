@@ -16,9 +16,12 @@ def get_connection():
     if db_url.startswith("postgresql://"):
         try:
             import psycopg2
+
             return psycopg2.connect(db_url)
         except ImportError as e:
-            raise ImportError("psycopg2 required for PostgreSQL. Install with: pip install psycopg2-binary") from e
+            raise ImportError(
+                "psycopg2 required for PostgreSQL. Install with: pip install psycopg2-binary"
+            ) from e
     else:
         # SQLite
         # Auto-create data directory if it doesn't exist

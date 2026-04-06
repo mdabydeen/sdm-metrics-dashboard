@@ -22,6 +22,7 @@ from tests.conftest import TEAMS_CONFIG
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def reset_config_singleton():
     """Ensure the global _config cache is cleared before/after every test."""
@@ -34,13 +35,16 @@ def reset_config_singleton():
 # load_teams_config
 # ---------------------------------------------------------------------------
 
+
 class TestLoadTeamsConfig:
     def test_loads_yaml_file(self, tmp_path):
-        yaml_content = textwrap.dedent("""
+        yaml_content = textwrap.dedent(
+            """
             teams:
               - id: team-a
                 name: Team A
-        """)
+        """
+        )
         config_file = tmp_path / "teams.yaml"
         config_file.write_text(yaml_content)
 
@@ -51,7 +55,10 @@ class TestLoadTeamsConfig:
 
     def test_raises_if_file_missing(self, tmp_path):
         missing = tmp_path / "nonexistent.yaml"
-        with patch.dict(os.environ, {"TEAMS_CONFIG": str(missing)}), pytest.raises(FileNotFoundError, match="Teams config not found"):
+        with (
+            patch.dict(os.environ, {"TEAMS_CONFIG": str(missing)}),
+            pytest.raises(FileNotFoundError, match="Teams config not found"),
+        ):
             load_teams_config()
 
     def test_default_path_used_when_env_not_set(self, monkeypatch, tmp_path):
@@ -74,6 +81,7 @@ class TestLoadTeamsConfig:
 # _extract_board_ids
 # ---------------------------------------------------------------------------
 
+
 class TestExtractBoardIds:
     def test_extracts_ids(self):
         result = _extract_board_ids(TEAMS_CONFIG)
@@ -95,6 +103,7 @@ class TestExtractBoardIds:
 # _build_board_team_map
 # ---------------------------------------------------------------------------
 
+
 class TestBuildBoardTeamMap:
     def test_builds_mapping(self):
         result = _build_board_team_map(TEAMS_CONFIG)
@@ -113,6 +122,7 @@ class TestBuildBoardTeamMap:
 # ---------------------------------------------------------------------------
 # _extract_repos
 # ---------------------------------------------------------------------------
+
 
 class TestExtractRepos:
     def test_extracts_repos(self):
@@ -133,9 +143,11 @@ class TestExtractRepos:
 # _validate_config
 # ---------------------------------------------------------------------------
 
+
 class TestValidateConfig:
     def test_warns_when_jira_token_missing(self, caplog):
         import logging
+
         config = {
             "jira": {"api_token": ""},
             "github": {"token": "something"},
@@ -146,6 +158,7 @@ class TestValidateConfig:
 
     def test_warns_when_github_token_missing(self, caplog):
         import logging
+
         config = {
             "jira": {"api_token": "something"},
             "github": {"token": ""},
@@ -156,6 +169,7 @@ class TestValidateConfig:
 
     def test_no_warnings_when_both_tokens_present(self, caplog):
         import logging
+
         config = {
             "jira": {"api_token": "tok1"},
             "github": {"token": "tok2"},
@@ -169,18 +183,22 @@ class TestValidateConfig:
 # load_config / get_config
 # ---------------------------------------------------------------------------
 
+
 class TestLoadConfig:
     def test_load_config_returns_all_sections(self):
-        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(
-            os.environ,
-            {
-                "JIRA_BASE_URL": "https://example.atlassian.net",
-                "JIRA_EMAIL": "e@test.com",
-                "JIRA_API_TOKEN": "tok",
-                "GITHUB_TOKEN": "ghp_tok",
-                "GITHUB_ORG": "myorg",
-                "DATABASE_URL": "data/metrics.db",
-            },
+        with (
+            patch("src.config.load_teams_config", return_value=TEAMS_CONFIG),
+            patch.dict(
+                os.environ,
+                {
+                    "JIRA_BASE_URL": "https://example.atlassian.net",
+                    "JIRA_EMAIL": "e@test.com",
+                    "JIRA_API_TOKEN": "tok",
+                    "GITHUB_TOKEN": "ghp_tok",
+                    "GITHUB_ORG": "myorg",
+                    "DATABASE_URL": "data/metrics.db",
+                },
+            ),
         ):
             result = load_config()
 
@@ -191,7 +209,10 @@ class TestLoadConfig:
         assert "teams" in result
 
     def test_jira_defaults(self):
-        with patch("src.config.load_teams_config", return_value={"teams": []}), patch.dict(os.environ, {}, clear=True):
+        with (
+            patch("src.config.load_teams_config", return_value={"teams": []}),
+            patch.dict(os.environ, {}, clear=True),
+        ):
             result = load_config()
         assert result["jira"]["base_url"] == "https://example.atlassian.net"
         assert result["jira"]["story_points_field"] == "customfield_10016"
@@ -199,7 +220,11 @@ class TestLoadConfig:
 
     def test_get_config_caches_result(self):
         with patch("src.config.load_config") as mock_load:
-            mock_load.return_value = {"db": {"url": ":memory:"}, "jira": {"api_token": "x"}, "github": {"token": "y"}}
+            mock_load.return_value = {
+                "db": {"url": ":memory:"},
+                "jira": {"api_token": "x"},
+                "github": {"token": "y"},
+            }
             # First call populates the cache
             r1 = get_config()
             # Second call should use the cache (load_config called only once)
@@ -208,7 +233,10 @@ class TestLoadConfig:
         assert r1 is r2
 
     def test_board_ids_populated_from_teams(self):
-        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(os.environ, {"JIRA_API_TOKEN": "t", "GITHUB_TOKEN": "g"}):
+        with (
+            patch("src.config.load_teams_config", return_value=TEAMS_CONFIG),
+            patch.dict(os.environ, {"JIRA_API_TOKEN": "t", "GITHUB_TOKEN": "g"}),
+        ):
             result = load_config()
         assert 42 in result["jira"]["board_ids"]
         assert 15 in result["jira"]["board_ids"]

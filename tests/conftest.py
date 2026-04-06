@@ -132,16 +132,19 @@ def patched_config(app_config, tmp_db_path, monkeypatch):
 
     cfg_module._config = None  # reset cached singleton
 
-    with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(
-        os.environ,
-        {
-            "JIRA_BASE_URL": "https://test.atlassian.net",
-            "JIRA_EMAIL": "test@example.com",
-            "JIRA_API_TOKEN": "test-token",
-            "GITHUB_TOKEN": "ghp_test_token",
-            "GITHUB_ORG": "org",
-            "DATABASE_URL": tmp_db_path,
-        },
+    with (
+        patch("src.config.load_teams_config", return_value=TEAMS_CONFIG),
+        patch.dict(
+            os.environ,
+            {
+                "JIRA_BASE_URL": "https://test.atlassian.net",
+                "JIRA_EMAIL": "test@example.com",
+                "JIRA_API_TOKEN": "test-token",
+                "GITHUB_TOKEN": "ghp_test_token",
+                "GITHUB_ORG": "org",
+                "DATABASE_URL": tmp_db_path,
+            },
+        ),
     ):
         cfg_module._config = None
         yield

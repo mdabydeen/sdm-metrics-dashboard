@@ -16,6 +16,7 @@ router = APIRouter()
 
 class CapacityEntry(BaseModel):
     """Capacity entry for a single engineer in a sprint."""
+
     sprint_id: int
     engineer_id: str
     available_days: float
@@ -29,13 +30,15 @@ def get_sprints():
     """Get list of recent sprints for dropdown (active, future, and recently closed)."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT sprint_id, sprint_name, team_id, start_date, end_date, state
             FROM sprints
             WHERE state IN ('active', 'future', 'closed')
             ORDER BY start_date DESC
             LIMIT 30
-        """)
+        """
+        )
         sprints = [dict(row) for row in cursor.fetchall()]
     return sprints
 
@@ -46,19 +49,24 @@ def get_engineers(team_id: str = None):
     with get_db() as conn:
         cursor = conn.cursor()
         if team_id:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT engineer_id, display_name, team_id
                 FROM engineers
                 WHERE team_id = ? AND is_active = 1
                 ORDER BY display_name
-            """, (team_id,))
+            """,
+                (team_id,),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT engineer_id, display_name, team_id
                 FROM engineers
                 WHERE is_active = 1
                 ORDER BY team_id, display_name
-            """)
+            """
+            )
         engineers = [dict(row) for row in cursor.fetchall()]
     return engineers
 
@@ -68,11 +76,13 @@ def get_teams():
     """Get all teams."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT team_id, team_name, sdm_name, director_name
             FROM teams
             ORDER BY team_name
-        """)
+        """
+        )
         teams = [dict(row) for row in cursor.fetchall()]
     return teams
 
@@ -82,7 +92,8 @@ def get_capacity(sprint_id: int):
     """Get all capacity entries for a sprint."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 sc.id, sc.sprint_id, sc.engineer_id, sc.available_days,
                 sc.total_days, sc.capacity_points, sc.notes,
@@ -91,7 +102,9 @@ def get_capacity(sprint_id: int):
             JOIN engineers e ON e.engineer_id = sc.engineer_id
             WHERE sc.sprint_id = ?
             ORDER BY e.display_name
-        """, (sprint_id,))
+        """,
+            (sprint_id,),
+        )
         entries = [dict(row) for row in cursor.fetchall()]
     return entries
 
@@ -154,7 +167,11 @@ async def import_capacity_csv(file: UploadFile = File(...)):
                             row["engineer_id"],
                             float(row["available_days"]),
                             float(row.get("total_days", 10)),
-                            float(row.get("capacity_points")) if row.get("capacity_points") else None,
+                            (
+                                float(row.get("capacity_points"))
+                                if row.get("capacity_points")
+                                else None
+                            ),
                             row.get("notes"),
                         ),
                     )

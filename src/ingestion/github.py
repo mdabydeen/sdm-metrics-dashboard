@@ -159,7 +159,9 @@ class GithubDeploymentIngestor(BaseIngestor):
                     page += 1
 
                 except Exception as e:
-                    self.logger.warning(f"Failed to fetch deployments from {owner}/{repo_name}: {e}")
+                    self.logger.warning(
+                        f"Failed to fetch deployments from {owner}/{repo_name}: {e}"
+                    )
                     break
 
         return all_deployments
