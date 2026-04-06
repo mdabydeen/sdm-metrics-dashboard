@@ -1,8 +1,8 @@
 """FastAPI app for sprint capacity input."""
 
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 
@@ -11,10 +11,21 @@ from src.config import get_config
 
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: startup and shutdown."""
+    logger.info("Capacity app started")
+    config = get_config()
+    logger.info(f"Using database: {config['db']['url']}")
+    yield
+
+
 app = FastAPI(
     title="SDM Metrics - Capacity Input",
     description="Lightweight web form for sprint capacity entry",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Include routes
@@ -35,11 +46,3 @@ def root():
 def health():
     """Health check endpoint."""
     return {"status": "ok"}
-
-
-@app.on_event("startup")
-async def startup():
-    """Initialize on startup."""
-    logger.info("Capacity app started")
-    config = get_config()
-    logger.info(f"Using database: {config['db']['url']}")

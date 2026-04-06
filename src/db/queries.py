@@ -57,11 +57,16 @@ SELECT_EPICS_BY_TEAM = """
     ORDER BY planned_start
 """
 
-# Capacity
+# Capacity — uses ON CONFLICT to preserve row id and entered_at timestamp
 INSERT_OR_REPLACE_CAPACITY = """
-    INSERT OR REPLACE INTO sprint_capacity (
+    INSERT INTO sprint_capacity (
         sprint_id, engineer_id, available_days, total_days, capacity_points, notes
     ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(sprint_id, engineer_id) DO UPDATE SET
+        available_days = excluded.available_days,
+        total_days = excluded.total_days,
+        capacity_points = excluded.capacity_points,
+        notes = excluded.notes
 """
 
 SELECT_CAPACITY_BY_SPRINT = """
@@ -102,13 +107,24 @@ SELECT_DEPLOYMENTS_BY_TEAM = """
     LIMIT 100
 """
 
-# Sprint Metrics
+# Sprint Metrics — uses ON CONFLICT to preserve row id and computed_at timestamp
 INSERT_OR_REPLACE_SPRINT_METRICS = """
-    INSERT OR REPLACE INTO sprint_metrics (
+    INSERT INTO sprint_metrics (
         sprint_id, team_id, velocity, committed_points, commitment_accuracy,
         scope_creep_rate, bug_count, story_count, avg_cycle_time_hrs,
         capacity_total_days, utilization
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(sprint_id, team_id) DO UPDATE SET
+        velocity = excluded.velocity,
+        committed_points = excluded.committed_points,
+        commitment_accuracy = excluded.commitment_accuracy,
+        scope_creep_rate = excluded.scope_creep_rate,
+        bug_count = excluded.bug_count,
+        story_count = excluded.story_count,
+        avg_cycle_time_hrs = excluded.avg_cycle_time_hrs,
+        capacity_total_days = excluded.capacity_total_days,
+        utilization = excluded.utilization,
+        computed_at = CURRENT_TIMESTAMP
 """
 
 SELECT_SPRINT_METRICS_BY_TEAM = """

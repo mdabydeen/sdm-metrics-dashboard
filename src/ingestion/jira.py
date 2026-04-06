@@ -1,9 +1,16 @@
 """JIRA data ingestors."""
 
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import BaseIngestor
 from src.db.connection import get_db
+
+
+def _safe_get(obj, key, default=None):
+    """Safely get a key from an object that might be None."""
+    if obj is None:
+        return default
+    return obj.get(key, default)
 
 
 class JiraSprintIngestor(BaseIngestor):
@@ -55,7 +62,7 @@ class JiraSprintIngestor(BaseIngestor):
                     "start_date": sprint.get("startDate"),
                     "end_date": sprint.get("endDate"),
                     "goal": sprint.get("goal"),
-                    "synced_at": datetime.utcnow().isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -89,15 +96,13 @@ class JiraIssueIngestor(BaseIngestor):
         return "unknown"
 
     def fetch_raw(self) -> list[dict]:
-        """Fetch all issues across all boards with pagination."""
+        """Fetch all issues across all boards with pagination via the agile API."""
         base_url = self.config["jira"]["base_url"]
         board_ids = self.config["jira"]["board_ids"]
 
         all_issues = []
         for board_id in board_ids:
-            # Use correct JIRA JQL (board = X, not subqueries)
-            jql = f"board = {board_id} ORDER BY updated DESC"
-            url = f"{base_url}/rest/api/3/search"
+            url = f"{base_url}/rest/agile/1.0/board/{board_id}/issue"
 
             start_at = 0
             while True:
@@ -106,10 +111,10 @@ class JiraIssueIngestor(BaseIngestor):
                         url,
                         auth=self._auth(),
                         params={
-                            "jql": jql,
                             "maxResults": 100,
                             "startAt": start_at,
                             "expand": "changelog",
+                            "fields": "*all",
                         },
                         timeout=30,
                     )
@@ -140,6 +145,8 @@ class JiraIssueIngestor(BaseIngestor):
         started_at = None
         is_unplanned = 0
 
+        now = datetime.now(timezone.utc)
+
         # Find when issue first entered "In Progress"
         for history in changelog:
             for item in history.get("items", []):
@@ -151,15 +158,20 @@ class JiraIssueIngestor(BaseIngestor):
 
         # Check if sprint was added after sprint start (would indicate mid-sprint addition)
         sprint_field = self.config["jira"].get("sprint_field", "customfield_10020")
-        sprint_start = None
         for history in changelog:
-            if history.get("created") < datetime.utcnow().isoformat():
-                for item in history.get("items", []):
-                    if item.get("fieldId") == sprint_field and item.get("toString"):
-                        # Sprint was added; check if it's after sprint start
-                        # For MVP, we'll mark as unplanned if sprint changed mid-sprint
-                        if item.get("fromString"):  # Sprint changed, likely mid-sprint
-                            is_unplanned = 1
+            history_created = history.get("created")
+            if not history_created:
+                continue
+            try:
+                history_dt = datetime.fromisoformat(history_created.replace("Z", "+00:00"))
+                if history_dt < now:
+                    for item in history.get("items", []):
+                        if item.get("fieldId") == sprint_field and item.get("toString"):
+                            # Sprint changed mid-sprint — mark as unplanned
+                            if item.get("fromString"):
+                                is_unplanned = 1
+            except (ValueError, TypeError):
+                continue
 
         return started_at, is_unplanned
 
@@ -170,16 +182,16 @@ class JiraIssueIngestor(BaseIngestor):
 
         normalized = []
         for issue in raw:
-            fields = issue.get("fields", {})
+            fields = issue.get("fields") or {}
 
             # Extract story points directly from the configured custom field
             story_points = fields.get(story_points_field)
 
-            # Extract sprint ID from sprint link field
+            # Extract sprint ID from sprint link field (guard against None)
             sprint_id = None
-            sprint_link = fields.get(sprint_field, [])
+            sprint_link = fields.get(sprint_field) or []
             if sprint_link and len(sprint_link) > 0:
-                sprint_id = sprint_link[0].get("id")
+                sprint_id = _safe_get(sprint_link[0], "id")
 
             # Parse changelog for started_at and is_unplanned
             started_at, is_unplanned = self._parse_changelog(issue)
@@ -187,24 +199,33 @@ class JiraIssueIngestor(BaseIngestor):
             # Get team_id from sprint
             team_id = self._get_team_from_sprint(sprint_id)
 
+            # Null-safe field access for nullable JIRA objects
+            assignee = fields.get("assignee")
+            priority = fields.get("priority")
+            issuetype = fields.get("issuetype") or {}
+            status = fields.get("status") or {}
+            parent = fields.get("parent")
+
+            issue_type_name = _safe_get(issuetype, "name", "")
+
             normalized.append(
                 {
                     "issue_id": issue["key"],
-                    "issue_type": fields.get("issuetype", {}).get("name", ""),
+                    "issue_type": issue_type_name,
                     "summary": fields.get("summary", ""),
-                    "status": fields.get("status", {}).get("name", ""),
-                    "priority": fields.get("priority", {}).get("name"),
+                    "status": _safe_get(status, "name", ""),
+                    "priority": _safe_get(priority, "name"),
                     "story_points": story_points,
-                    "assignee_id": fields.get("assignee", {}).get("accountId"),
+                    "assignee_id": _safe_get(assignee, "accountId"),
                     "team_id": team_id,
                     "sprint_id": sprint_id,
-                    "epic_key": fields.get("parent", {}).get("key") if fields.get("issuetype", {}).get("name") != "Epic" else None,
-                    "labels": ",".join(fields.get("labels", [])),
+                    "epic_key": _safe_get(parent, "key") if issue_type_name != "Epic" else None,
+                    "labels": ",".join(fields.get("labels") or []),
                     "created_at": fields.get("created"),
                     "resolved_at": fields.get("resolutiondate"),
                     "started_at": started_at,
                     "is_unplanned": is_unplanned,
-                    "synced_at": datetime.utcnow().isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -264,21 +285,22 @@ class JiraEpicIngestor(BaseIngestor):
         """Normalize JIRA epic data."""
         normalized = []
         for epic in raw:
-            fields = epic.get("fields", {})
+            fields = epic.get("fields") or {}
+            status = fields.get("status") or {}
 
             normalized.append(
                 {
                     "epic_key": epic["key"],
                     "epic_name": fields.get("summary", ""),
                     "team_id": "unknown",  # Will be inferred from child issues in Phase 2
-                    "status": fields.get("status", {}).get("name", ""),
+                    "status": _safe_get(status, "name", ""),
                     "total_points": None,  # Will compute from child issues
                     "completed_points": 0,
                     "planned_start": None,
                     "planned_end": None,
                     "predicted_end": None,
                     "confidence": 0.5,
-                    "synced_at": datetime.utcnow().isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
