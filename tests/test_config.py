@@ -2,23 +2,21 @@
 
 import os
 import textwrap
-from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
+
 import pytest
 
 import src.config as cfg_module
 from src.config import (
-    load_teams_config,
-    _extract_board_ids,
     _build_board_team_map,
+    _extract_board_ids,
     _extract_repos,
-    load_config,
-    get_config,
     _validate_config,
+    get_config,
+    load_config,
+    load_teams_config,
 )
-
 from tests.conftest import TEAMS_CONFIG
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -53,9 +51,8 @@ class TestLoadTeamsConfig:
 
     def test_raises_if_file_missing(self, tmp_path):
         missing = tmp_path / "nonexistent.yaml"
-        with patch.dict(os.environ, {"TEAMS_CONFIG": str(missing)}):
-            with pytest.raises(FileNotFoundError, match="Teams config not found"):
-                load_teams_config()
+        with patch.dict(os.environ, {"TEAMS_CONFIG": str(missing)}), pytest.raises(FileNotFoundError, match="Teams config not found"):
+            load_teams_config()
 
     def test_default_path_used_when_env_not_set(self, monkeypatch, tmp_path):
         """When TEAMS_CONFIG is not set, uses config/teams.yaml."""
@@ -174,19 +171,18 @@ class TestValidateConfig:
 
 class TestLoadConfig:
     def test_load_config_returns_all_sections(self):
-        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG):
-            with patch.dict(
-                os.environ,
-                {
-                    "JIRA_BASE_URL": "https://example.atlassian.net",
-                    "JIRA_EMAIL": "e@test.com",
-                    "JIRA_API_TOKEN": "tok",
-                    "GITHUB_TOKEN": "ghp_tok",
-                    "GITHUB_ORG": "myorg",
-                    "DATABASE_URL": "data/metrics.db",
-                },
-            ):
-                result = load_config()
+        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(
+            os.environ,
+            {
+                "JIRA_BASE_URL": "https://example.atlassian.net",
+                "JIRA_EMAIL": "e@test.com",
+                "JIRA_API_TOKEN": "tok",
+                "GITHUB_TOKEN": "ghp_tok",
+                "GITHUB_ORG": "myorg",
+                "DATABASE_URL": "data/metrics.db",
+            },
+        ):
+            result = load_config()
 
         assert "jira" in result
         assert "github" in result
@@ -195,9 +191,8 @@ class TestLoadConfig:
         assert "teams" in result
 
     def test_jira_defaults(self):
-        with patch("src.config.load_teams_config", return_value={"teams": []}):
-            with patch.dict(os.environ, {}, clear=True):
-                result = load_config()
+        with patch("src.config.load_teams_config", return_value={"teams": []}), patch.dict(os.environ, {}, clear=True):
+            result = load_config()
         assert result["jira"]["base_url"] == "https://example.atlassian.net"
         assert result["jira"]["story_points_field"] == "customfield_10016"
         assert result["jira"]["sprint_field"] == "customfield_10020"
@@ -213,8 +208,7 @@ class TestLoadConfig:
         assert r1 is r2
 
     def test_board_ids_populated_from_teams(self):
-        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG):
-            with patch.dict(os.environ, {"JIRA_API_TOKEN": "t", "GITHUB_TOKEN": "g"}):
-                result = load_config()
+        with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(os.environ, {"JIRA_API_TOKEN": "t", "GITHUB_TOKEN": "g"}):
+            result = load_config()
         assert 42 in result["jira"]["board_ids"]
         assert 15 in result["jira"]["board_ids"]

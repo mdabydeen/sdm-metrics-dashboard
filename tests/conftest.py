@@ -2,11 +2,10 @@
 
 import os
 import sqlite3
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
-import pytest
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Minimal teams config used across all tests
@@ -130,24 +129,22 @@ def patched_config(app_config, tmp_db_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", tmp_db_path)
     # Patch the global cached config
     import src.config as cfg_module
-    import src.db.connection as conn_module
 
     cfg_module._config = None  # reset cached singleton
 
-    with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG):
-        with patch.dict(
-            os.environ,
-            {
-                "JIRA_BASE_URL": "https://test.atlassian.net",
-                "JIRA_EMAIL": "test@example.com",
-                "JIRA_API_TOKEN": "test-token",
-                "GITHUB_TOKEN": "ghp_test_token",
-                "GITHUB_ORG": "org",
-                "DATABASE_URL": tmp_db_path,
-            },
-        ):
-            cfg_module._config = None
-            yield
+    with patch("src.config.load_teams_config", return_value=TEAMS_CONFIG), patch.dict(
+        os.environ,
+        {
+            "JIRA_BASE_URL": "https://test.atlassian.net",
+            "JIRA_EMAIL": "test@example.com",
+            "JIRA_API_TOKEN": "test-token",
+            "GITHUB_TOKEN": "ghp_test_token",
+            "GITHUB_ORG": "org",
+            "DATABASE_URL": tmp_db_path,
+        },
+    ):
+        cfg_module._config = None
+        yield
 
     # Cleanup: reset the singleton after the test
     cfg_module._config = None

@@ -1,9 +1,11 @@
 """Compute and populate sprint metrics."""
 
+import contextlib
 import logging
 from datetime import datetime
-from src.db.connection import get_db
+
 from src.db import queries
+from src.db.connection import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +64,11 @@ class MetricsComputer:
             cycle_times = []
             for issue in issues:
                 if issue.get("started_at") and issue.get("resolved_at"):
-                    try:
+                    with contextlib.suppress(Exception):
                         start = datetime.fromisoformat(issue["started_at"].replace("Z", "+00:00"))
                         end = datetime.fromisoformat(issue["resolved_at"].replace("Z", "+00:00"))
                         cycle_hours = (end - start).total_seconds() / 3600.0
                         cycle_times.append(cycle_hours)
-                    except Exception:
-                        pass
 
             avg_cycle_time_hrs = sum(cycle_times) / len(cycle_times) if cycle_times else 0.0
 

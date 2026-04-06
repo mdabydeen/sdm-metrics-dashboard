@@ -1,16 +1,17 @@
 """Tests for src/ingestion/jira.py – JiraSprintIngestor, JiraIssueIngestor, JiraEpicIngestor."""
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 import src.config as cfg_module
 from src.ingestion.jira import (
-    JiraSprintIngestor,
-    JiraIssueIngestor,
     JiraEpicIngestor,
+    JiraIssueIngestor,
+    JiraSprintIngestor,
     _safe_get,
 )
 
@@ -517,9 +518,8 @@ class TestJiraSprintIngestorRun:
         sprints = {"values": [_make_sprint(200, 42, "Sprint 200", "active")]}
         responses = [_mock_response(sprints), _mock_response({"values": []})]
         ing = JiraSprintIngestor(app_config)
-        with patch("requests.get", side_effect=responses):
-            with patch("src.db.connection.get_config", return_value=db_config):
-                count = ing.run()
+        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+            count = ing.run()
         assert count == 1
 
 
@@ -538,7 +538,6 @@ class TestJiraIssueIngestorRun:
         empty = {"issues": [], "total": 0}
         responses = [_mock_response(issues), _mock_response(empty)]
         ing = JiraIssueIngestor(app_config)
-        with patch("requests.get", side_effect=responses):
-            with patch("src.db.connection.get_config", return_value=db_config):
-                count = ing.run()
+        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+            count = ing.run()
         assert count == 1

@@ -1,15 +1,14 @@
 """FastAPI routes for capacity input."""
 
-import logging
-from fastapi import APIRouter, HTTPException, File, UploadFile
-from pydantic import BaseModel
 import csv
 import io
-from datetime import datetime
+import logging
 
-from src.db.connection import get_db
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel
+
 from src.db import queries
-from src.config import get_config
+from src.db.connection import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -124,7 +123,7 @@ def create_capacity(entry: CapacityEntry):
         }
     except Exception as e:
         logger.error(f"Failed to create capacity entry: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/capacity/import")
@@ -174,4 +173,4 @@ async def import_capacity_csv(file: UploadFile = File(...)):
         }
     except Exception as e:
         logger.error(f"CSV import failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

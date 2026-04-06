@@ -1,7 +1,9 @@
 """GitHub data ingestors with pagination."""
 
+from datetime import UTC, datetime
+
 import requests
-from datetime import datetime, timezone
+
 from .base import BaseIngestor
 
 
@@ -95,7 +97,7 @@ class GithubPRIngestor(BaseIngestor):
                     "first_review_at": None,  # Would need comment timeline
                     "merged_at": pr.get("merged_at"),
                     "closed_at": pr.get("closed_at"),
-                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(UTC).isoformat(),
                 }
             )
 
@@ -181,7 +183,7 @@ class GithubDeploymentIngestor(BaseIngestor):
                     "sha": deploy.get("sha", ""),
                     "deployed_at": deploy.get("created_at"),
                     "caused_incident": 0,  # Would need incident tracking
-                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(UTC).isoformat(),
                 }
             )
 

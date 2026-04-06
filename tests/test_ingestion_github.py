@@ -1,14 +1,15 @@
 """Tests for src/ingestion/github.py – GithubPRIngestor and GithubDeploymentIngestor."""
 
 import sqlite3
-from pathlib import Path
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
 
 import src.config as cfg_module
-from src.ingestion.github import GithubPRIngestor, GithubDeploymentIngestor
+from src.ingestion.github import GithubDeploymentIngestor, GithubPRIngestor
 
 SCHEMA_SQL = Path(__file__).parent.parent / "db" / "schema.sql"
 
@@ -245,7 +246,7 @@ class TestGithubDeploymentIngestorHeaders:
     def test_headers_contain_auth_token(self, app_config):
         ing = GithubDeploymentIngestor(app_config)
         headers = ing._headers()
-        assert "token ghp_test_token" == headers["Authorization"]
+        assert headers["Authorization"] == "token ghp_test_token"
 
 
 # ---------------------------------------------------------------------------
@@ -360,16 +361,14 @@ class TestGithubPRIngestorRun:
         ]
 
         ing = GithubPRIngestor(app_config)
-        with patch("requests.get", side_effect=responses):
-            with patch("src.db.connection.get_config", return_value=db_config):
-                count = ing.run()
+        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+            count = ing.run()
 
         assert count >= 1
 
     def test_run_empty_fetch_returns_zero(self, app_config, db_config):
         responses = [_mock_response([]) for _ in range(6)]
         ing = GithubPRIngestor(app_config)
-        with patch("requests.get", side_effect=responses):
-            with patch("src.db.connection.get_config", return_value=db_config):
-                count = ing.run()
+        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+            count = ing.run()
         assert count == 0

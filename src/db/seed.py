@@ -2,9 +2,10 @@
 
 import logging
 from pathlib import Path
+
 from src.config import get_config
-from src.db.connection import get_db
 from src.db import queries
+from src.db.connection import get_db
 
 logger = logging.getLogger(__name__)
 

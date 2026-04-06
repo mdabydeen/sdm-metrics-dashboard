@@ -3,6 +3,7 @@
 import sqlite3
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 import src.config as cfg_module
@@ -50,12 +51,11 @@ def db_config(tmp_path):
 def client(db_config):
     """Create a TestClient with patched config."""
     from fastapi.testclient import TestClient
-    with patch("src.db.connection.get_config", return_value=db_config):
-        with patch("src.config.load_config", return_value=db_config):
-            cfg_module._config = db_config
-            from src.capacity.app import app
-            with TestClient(app) as c:
-                yield c
+    with patch("src.db.connection.get_config", return_value=db_config), patch("src.config.load_config", return_value=db_config):
+        cfg_module._config = db_config
+        from src.capacity.app import app
+        with TestClient(app) as c:
+            yield c
 
 
 class TestHealthEndpoint:

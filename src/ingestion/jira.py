@@ -1,9 +1,12 @@
 """JIRA data ingestors."""
 
+from datetime import UTC, datetime
+
 import requests
-from datetime import datetime, timezone
-from .base import BaseIngestor
+
 from src.db.connection import get_db
+
+from .base import BaseIngestor
 
 
 def _safe_get(obj, key, default=None):
@@ -62,7 +65,7 @@ class JiraSprintIngestor(BaseIngestor):
                     "start_date": sprint.get("startDate"),
                     "end_date": sprint.get("endDate"),
                     "goal": sprint.get("goal"),
-                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(UTC).isoformat(),
                 }
             )
 
@@ -145,7 +148,7 @@ class JiraIssueIngestor(BaseIngestor):
         started_at = None
         is_unplanned = 0
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Find when issue first entered "In Progress"
         for history in changelog:
@@ -166,10 +169,9 @@ class JiraIssueIngestor(BaseIngestor):
                 history_dt = datetime.fromisoformat(history_created.replace("Z", "+00:00"))
                 if history_dt < now:
                     for item in history.get("items", []):
-                        if item.get("fieldId") == sprint_field and item.get("toString"):
+                        if item.get("fieldId") == sprint_field and item.get("toString") and item.get("fromString"):
                             # Sprint changed mid-sprint — mark as unplanned
-                            if item.get("fromString"):
-                                is_unplanned = 1
+                            is_unplanned = 1
             except (ValueError, TypeError):
                 continue
 
@@ -225,7 +227,7 @@ class JiraIssueIngestor(BaseIngestor):
                     "resolved_at": fields.get("resolutiondate"),
                     "started_at": started_at,
                     "is_unplanned": is_unplanned,
-                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(UTC).isoformat(),
                 }
             )
 
@@ -300,7 +302,7 @@ class JiraEpicIngestor(BaseIngestor):
                     "planned_end": None,
                     "predicted_end": None,
                     "confidence": 0.5,
-                    "synced_at": datetime.now(timezone.utc).isoformat(),
+                    "synced_at": datetime.now(UTC).isoformat(),
                 }
             )
 

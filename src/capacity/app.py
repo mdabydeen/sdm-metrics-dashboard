@@ -2,9 +2,10 @@
 
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
 from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 from src.capacity.routes import router
 from src.config import get_config
