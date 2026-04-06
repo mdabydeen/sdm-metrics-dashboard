@@ -24,6 +24,7 @@ def reset_config():
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def db_config(tmp_path):
     db_file = tmp_path / "seed_test.db"
@@ -49,6 +50,7 @@ def seeded_db_config(db_config):
 # apply_schema
 # ---------------------------------------------------------------------------
 
+
 class TestApplySchema:
     def test_creates_all_tables(self, db_config):
         with patch("src.db.connection.get_config", return_value=db_config):
@@ -62,14 +64,25 @@ class TestApplySchema:
         conn.close()
 
         expected = {
-            "teams", "engineers", "sprints", "issues", "issue_changelog",
-            "epics", "sprint_capacity", "pull_requests", "deployments",
-            "sprint_metrics", "sync_state",
+            "teams",
+            "engineers",
+            "sprints",
+            "issues",
+            "issue_changelog",
+            "epics",
+            "sprint_capacity",
+            "pull_requests",
+            "deployments",
+            "sprint_metrics",
+            "sync_state",
         }
         assert expected.issubset(tables)
 
     def test_returns_false_when_schema_file_missing(self, db_config):
-        with patch("src.db.connection.get_config", return_value=db_config), patch("src.db.seed.Path") as mock_path:
+        with (
+            patch("src.db.connection.get_config", return_value=db_config),
+            patch("src.db.seed.Path") as mock_path,
+        ):
             mock_path.return_value.exists.return_value = False
             result = apply_schema()
         assert result is False
@@ -93,10 +106,14 @@ class TestApplySchema:
 # seed_teams
 # ---------------------------------------------------------------------------
 
+
 class TestSeedTeams:
     def test_seeds_teams_from_config(self, seeded_db_config):
-        with patch("src.db.connection.get_config", return_value=seeded_db_config), patch("src.db.seed.get_config", return_value=seeded_db_config):
-                seed_teams()
+        with (
+            patch("src.db.connection.get_config", return_value=seeded_db_config),
+            patch("src.db.seed.get_config", return_value=seeded_db_config),
+        ):
+            seed_teams()
 
         conn = sqlite3.connect(seeded_db_config["db"]["url"])
         conn.row_factory = sqlite3.Row
@@ -108,8 +125,11 @@ class TestSeedTeams:
         assert teams[1]["team_id"] == "platform-infra"
 
     def test_seeds_engineers_from_config(self, seeded_db_config):
-        with patch("src.db.connection.get_config", return_value=seeded_db_config), patch("src.db.seed.get_config", return_value=seeded_db_config):
-                seed_teams()
+        with (
+            patch("src.db.connection.get_config", return_value=seeded_db_config),
+            patch("src.db.seed.get_config", return_value=seeded_db_config),
+        ):
+            seed_teams()
 
         conn = sqlite3.connect(seeded_db_config["db"]["url"])
         conn.row_factory = sqlite3.Row
@@ -124,9 +144,12 @@ class TestSeedTeams:
 
     def test_idempotent_seeding(self, seeded_db_config):
         """Running seed_teams twice should not create duplicates."""
-        with patch("src.db.connection.get_config", return_value=seeded_db_config), patch("src.db.seed.get_config", return_value=seeded_db_config):
-                seed_teams()
-                seed_teams()
+        with (
+            patch("src.db.connection.get_config", return_value=seeded_db_config),
+            patch("src.db.seed.get_config", return_value=seeded_db_config),
+        ):
+            seed_teams()
+            seed_teams()
 
         conn = sqlite3.connect(seeded_db_config["db"]["url"])
         count = conn.execute("SELECT COUNT(*) FROM teams").fetchone()[0]
@@ -135,8 +158,11 @@ class TestSeedTeams:
 
     def test_no_explicit_commit_needed(self, seeded_db_config):
         """Fix verification: get_db() context manager handles commit."""
-        with patch("src.db.connection.get_config", return_value=seeded_db_config), patch("src.db.seed.get_config", return_value=seeded_db_config):
-                seed_teams()
+        with (
+            patch("src.db.connection.get_config", return_value=seeded_db_config),
+            patch("src.db.seed.get_config", return_value=seeded_db_config),
+        ):
+            seed_teams()
 
         # Data should be persisted
         conn = sqlite3.connect(seeded_db_config["db"]["url"])
@@ -149,9 +175,13 @@ class TestSeedTeams:
 # init_db
 # ---------------------------------------------------------------------------
 
+
 class TestInitDb:
     def test_init_db_creates_schema_and_seeds(self, db_config):
-        with patch("src.db.connection.get_config", return_value=db_config), patch("src.db.seed.get_config", return_value=db_config):
+        with (
+            patch("src.db.connection.get_config", return_value=db_config),
+            patch("src.db.seed.get_config", return_value=db_config),
+        ):
             result = init_db()
         assert result is True
 

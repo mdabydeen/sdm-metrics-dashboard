@@ -24,8 +24,12 @@ def db_config(tmp_path):
     conn = sqlite3.connect(str(db_file))
     conn.executescript(SCHEMA_SQL.read_text())
     conn.execute("INSERT INTO teams (team_id, team_name) VALUES ('t1', 'Team 1')")
-    conn.execute("INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e1', 'Eng 1', 't1')")
-    conn.execute("INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e2', 'Eng 2', 't1')")
+    conn.execute(
+        "INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e1', 'Eng 1', 't1')"
+    )
+    conn.execute(
+        "INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e2', 'Eng 2', 't1')"
+    )
     conn.execute(
         "INSERT INTO sprints (sprint_id, board_id, team_id, sprint_name, state) "
         "VALUES (1, 10, 't1', 'Sprint 1', 'active')"
@@ -38,9 +42,15 @@ def db_config(tmp_path):
     conn.close()
     return {
         "db": {"url": str(db_file)},
-        "jira": {"api_token": "t", "base_url": "https://test.atlassian.net", "email": "t@t.com",
-                 "story_points_field": "customfield_10016", "sprint_field": "customfield_10020",
-                 "board_ids": [], "board_to_team": {}},
+        "jira": {
+            "api_token": "t",
+            "base_url": "https://test.atlassian.net",
+            "email": "t@t.com",
+            "story_points_field": "customfield_10016",
+            "sprint_field": "customfield_10020",
+            "board_ids": [],
+            "board_to_team": {},
+        },
         "github": {"token": "t", "org": "org", "repos": {}},
         "servicenow": {"instance": "", "user": "", "password": ""},
         "teams": {"teams": []},
@@ -51,9 +61,14 @@ def db_config(tmp_path):
 def client(db_config):
     """Create a TestClient with patched config."""
     from fastapi.testclient import TestClient
-    with patch("src.db.connection.get_config", return_value=db_config), patch("src.config.load_config", return_value=db_config):
+
+    with (
+        patch("src.db.connection.get_config", return_value=db_config),
+        patch("src.config.load_config", return_value=db_config),
+    ):
         cfg_module._config = db_config
         from src.capacity.app import app
+
         with TestClient(app) as c:
             yield c
 
@@ -112,27 +127,40 @@ class TestGetTeams:
 class TestPostCapacity:
     def test_create_capacity_entry(self, client, db_config):
         with patch("src.db.connection.get_config", return_value=db_config):
-            resp = client.post("/api/capacity", json={
-                "sprint_id": 1,
-                "engineer_id": "e1",
-                "available_days": 8.0,
-                "total_days": 10.0,
-                "capacity_points": 32.0,
-                "notes": "On call Monday",
-            })
+            resp = client.post(
+                "/api/capacity",
+                json={
+                    "sprint_id": 1,
+                    "engineer_id": "e1",
+                    "available_days": 8.0,
+                    "total_days": 10.0,
+                    "capacity_points": 32.0,
+                    "notes": "On call Monday",
+                },
+            )
         assert resp.status_code == 200
         assert resp.json()["status"] == "ok"
 
     def test_upsert_updates_existing(self, client, db_config):
         with patch("src.db.connection.get_config", return_value=db_config):
             # First insert
-            client.post("/api/capacity", json={
-                "sprint_id": 1, "engineer_id": "e1", "available_days": 8.0,
-            })
+            client.post(
+                "/api/capacity",
+                json={
+                    "sprint_id": 1,
+                    "engineer_id": "e1",
+                    "available_days": 8.0,
+                },
+            )
             # Upsert
-            client.post("/api/capacity", json={
-                "sprint_id": 1, "engineer_id": "e1", "available_days": 9.0,
-            })
+            client.post(
+                "/api/capacity",
+                json={
+                    "sprint_id": 1,
+                    "engineer_id": "e1",
+                    "available_days": 9.0,
+                },
+            )
             # Verify latest value
             resp = client.get("/api/capacity/1")
         data = resp.json()
@@ -143,9 +171,14 @@ class TestPostCapacity:
 class TestGetCapacity:
     def test_returns_capacity_for_sprint(self, client, db_config):
         with patch("src.db.connection.get_config", return_value=db_config):
-            client.post("/api/capacity", json={
-                "sprint_id": 1, "engineer_id": "e1", "available_days": 8.0,
-            })
+            client.post(
+                "/api/capacity",
+                json={
+                    "sprint_id": 1,
+                    "engineer_id": "e1",
+                    "available_days": 8.0,
+                },
+            )
             resp = client.get("/api/capacity/1")
         assert resp.status_code == 200
         data = resp.json()

@@ -26,7 +26,9 @@ def db_config(tmp_path):
     conn.executescript(SCHEMA_SQL.read_text())
     # Seed required FK data
     conn.execute("INSERT INTO teams (team_id, team_name) VALUES ('t1', 'Team 1')")
-    conn.execute("INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e1', 'Eng 1', 't1')")
+    conn.execute(
+        "INSERT INTO engineers (engineer_id, display_name, team_id) VALUES ('e1', 'Eng 1', 't1')"
+    )
     conn.execute(
         "INSERT INTO sprints (sprint_id, board_id, team_id, sprint_name, state) "
         "VALUES (1, 10, 't1', 'Sprint 1', 'closed')"
@@ -40,15 +42,34 @@ def db_config(tmp_path):
     }
 
 
-def _insert_issue(conn, issue_id, team_id="t1", sprint_id=1, status="Done",
-                   issue_type="Story", story_points=5, is_unplanned=0,
-                   started_at=None, resolved_at=None):
+def _insert_issue(
+    conn,
+    issue_id,
+    team_id="t1",
+    sprint_id=1,
+    status="Done",
+    issue_type="Story",
+    story_points=5,
+    is_unplanned=0,
+    started_at=None,
+    resolved_at=None,
+):
     conn.execute(
         "INSERT INTO issues (issue_id, issue_type, summary, status, story_points, "
         "team_id, sprint_id, is_unplanned, started_at, resolved_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (issue_id, issue_type, f"Summary {issue_id}", status, story_points,
-         team_id, sprint_id, is_unplanned, started_at, resolved_at),
+        (
+            issue_id,
+            issue_type,
+            f"Summary {issue_id}",
+            status,
+            story_points,
+            team_id,
+            sprint_id,
+            is_unplanned,
+            started_at,
+            resolved_at,
+        ),
     )
 
 
@@ -63,6 +84,7 @@ def _insert_capacity(conn, sprint_id=1, engineer_id="e1", available_days=8.0):
 # ---------------------------------------------------------------------------
 # compute_sprint_metrics
 # ---------------------------------------------------------------------------
+
 
 class TestComputeSprintMetrics:
     def test_velocity_sums_done_story_points(self, db_config):
@@ -140,11 +162,19 @@ class TestComputeSprintMetrics:
     def test_avg_cycle_time(self, db_config):
         conn = sqlite3.connect(db_config["db"]["url"])
         # 24 hours cycle time
-        _insert_issue(conn, "T-1", started_at="2024-01-05T10:00:00+00:00",
-                       resolved_at="2024-01-06T10:00:00+00:00")
+        _insert_issue(
+            conn,
+            "T-1",
+            started_at="2024-01-05T10:00:00+00:00",
+            resolved_at="2024-01-06T10:00:00+00:00",
+        )
         # 48 hours cycle time
-        _insert_issue(conn, "T-2", started_at="2024-01-05T10:00:00+00:00",
-                       resolved_at="2024-01-07T10:00:00+00:00")
+        _insert_issue(
+            conn,
+            "T-2",
+            started_at="2024-01-05T10:00:00+00:00",
+            resolved_at="2024-01-07T10:00:00+00:00",
+        )
         conn.commit()
         conn.close()
 
@@ -203,6 +233,7 @@ class TestComputeSprintMetrics:
 # compute_all / compute_metrics
 # ---------------------------------------------------------------------------
 
+
 class TestComputeAll:
     def test_computes_and_upserts_metrics(self, db_config):
         conn = sqlite3.connect(db_config["db"]["url"])
@@ -219,7 +250,9 @@ class TestComputeAll:
         # Verify persisted
         conn = sqlite3.connect(db_config["db"]["url"])
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM sprint_metrics WHERE sprint_id=1 AND team_id='t1'").fetchone()
+        row = conn.execute(
+            "SELECT * FROM sprint_metrics WHERE sprint_id=1 AND team_id='t1'"
+        ).fetchone()
         conn.close()
         assert row is not None
         assert row["velocity"] == 5.0
@@ -263,6 +296,8 @@ class TestComputeAll:
             mc.compute_all()
 
         conn = sqlite3.connect(db_config["db"]["url"])
-        count = conn.execute("SELECT COUNT(*) FROM sprint_metrics WHERE sprint_id=1 AND team_id='t1'").fetchone()[0]
+        count = conn.execute(
+            "SELECT COUNT(*) FROM sprint_metrics WHERE sprint_id=1 AND team_id='t1'"
+        ).fetchone()[0]
         conn.close()
         assert count == 1

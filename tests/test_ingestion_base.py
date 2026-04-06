@@ -24,14 +24,24 @@ def reset_config():
 # Concrete subclass for testing
 # ---------------------------------------------------------------------------
 
+
 class ConcreteIngestor(BaseIngestor):
     table_name = "sprints"
 
     def fetch_raw(self):
-        return [{"sprint_id": 1, "board_id": 42, "team_id": "payments-backend",
-                 "sprint_name": "Sprint 1", "state": "active",
-                 "start_date": "2024-01-01", "end_date": "2024-01-14",
-                 "goal": "Test goal", "synced_at": "2024-01-01T00:00:00"}]
+        return [
+            {
+                "sprint_id": 1,
+                "board_id": 42,
+                "team_id": "payments-backend",
+                "sprint_name": "Sprint 1",
+                "state": "active",
+                "start_date": "2024-01-01",
+                "end_date": "2024-01-14",
+                "goal": "Test goal",
+                "synced_at": "2024-01-01T00:00:00",
+            }
+        ]
 
     def normalize(self, raw):
         return raw
@@ -71,15 +81,14 @@ class NoTableNameIngestor(BaseIngestor):
 # DB fixture
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def db_config(tmp_path):
     db_file = tmp_path / "test.db"
     conn = sqlite3.connect(str(db_file))
     conn.executescript(SCHEMA_SQL.read_text())
     # Insert required team reference for FK constraint
-    conn.execute(
-        "INSERT INTO teams (team_id, team_name) VALUES ('payments-backend', 'Payments')"
-    )
+    conn.execute("INSERT INTO teams (team_id, team_name) VALUES ('payments-backend', 'Payments')")
     conn.commit()
     conn.close()
     return {
@@ -93,6 +102,7 @@ def db_config(tmp_path):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestBaseIngestorInit:
     def test_stores_config(self, app_config):
@@ -119,13 +129,20 @@ class TestBaseIngestorRun:
 
     def test_run_raises_on_fetch_failure(self, app_config, db_config):
         ing = FailingFetchIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config), pytest.raises(ConnectionError, match="API down"):
+        with (
+            patch("src.db.connection.get_config", return_value=db_config),
+            pytest.raises(ConnectionError, match="API down"),
+        ):
             ing.run()
 
     def test_run_logs_start_info(self, app_config, db_config, caplog):
         import logging
+
         ing = ConcreteIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config), caplog.at_level(logging.INFO, logger="ConcreteIngestor"):
+        with (
+            patch("src.db.connection.get_config", return_value=db_config),
+            caplog.at_level(logging.INFO, logger="ConcreteIngestor"),
+        ):
             ing.run()
         assert any("Starting ingestion" in m for m in caplog.messages)
 
@@ -139,7 +156,10 @@ class TestBaseIngestorUpsert:
 
     def test_upsert_raises_when_no_table_name(self, app_config, db_config):
         ing = NoTableNameIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config), pytest.raises(ValueError, match="must define table_name"):
+        with (
+            patch("src.db.connection.get_config", return_value=db_config),
+            pytest.raises(ValueError, match="must define table_name"),
+        ):
             ing.upsert([{"id": 1}])
 
     def test_upsert_inserts_records(self, app_config, db_config):

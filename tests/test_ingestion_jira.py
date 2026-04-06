@@ -29,12 +29,16 @@ def reset_config():
 # DB fixture with required FK rows
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def db_config(tmp_path):
     db_file = tmp_path / "jira_test.db"
     conn = sqlite3.connect(str(db_file))
     conn.executescript(SCHEMA_SQL.read_text())
-    for team_id, name in [("payments-backend", "Payments Backend"), ("platform-infra", "Platform Infra")]:
+    for team_id, name in [
+        ("payments-backend", "Payments Backend"),
+        ("platform-infra", "Platform Infra"),
+    ]:
         conn.execute(
             "INSERT OR IGNORE INTO teams (team_id, team_name) VALUES (?, ?)", (team_id, name)
         )
@@ -55,6 +59,7 @@ def db_config(tmp_path):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_response(json_data, status_code=200):
     mock = MagicMock()
@@ -123,6 +128,7 @@ def _make_epic(key="EPIC-1", status="In Progress"):
 # _safe_get helper
 # ---------------------------------------------------------------------------
 
+
 class TestSafeGet:
     def test_returns_value_from_dict(self):
         assert _safe_get({"a": 1}, "a") == 1
@@ -140,6 +146,7 @@ class TestSafeGet:
 # ---------------------------------------------------------------------------
 # JiraSprintIngestor
 # ---------------------------------------------------------------------------
+
 
 class TestJiraSprintIngestorFetchRaw:
     def test_fetches_sprints_from_all_boards(self, app_config):
@@ -206,11 +213,14 @@ class TestJiraSprintIngestorNormalize:
 # JiraIssueIngestor
 # ---------------------------------------------------------------------------
 
+
 class TestJiraIssueIngestorFetchRaw:
     def test_uses_agile_board_api_not_jql_search(self, app_config):
         """Fix verification: should use /rest/agile/1.0/board/{id}/issue, not /rest/api/3/search."""
         ing = JiraIssueIngestor(app_config)
-        with patch("requests.get", return_value=_mock_response({"issues": [], "total": 0})) as mock_get:
+        with patch(
+            "requests.get", return_value=_mock_response({"issues": [], "total": 0})
+        ) as mock_get:
             ing.fetch_raw()
         for call in mock_get.call_args_list:
             url = call[0][0]
@@ -337,9 +347,7 @@ class TestJiraIssueIngestorParseChangelog:
         histories = [
             {
                 "created": "2024-01-06T09:00:00.000+0000",
-                "items": [
-                    {"field": "status", "toString": "In Progress", "fromString": "To Do"}
-                ],
+                "items": [{"field": "status", "toString": "In Progress", "fromString": "To Do"}],
             }
         ]
         issue = _make_issue("TEST-1", changelog_histories=histories)
@@ -461,6 +469,7 @@ class TestJiraIssueIngestorGetTeamFromSprint:
 # JiraEpicIngestor
 # ---------------------------------------------------------------------------
 
+
 class TestJiraEpicIngestorFetchRaw:
     def test_fetches_epics_with_pagination(self, app_config):
         page1 = {"issues": [_make_epic(f"EPIC-{i}") for i in range(100)], "total": 120}
@@ -513,12 +522,16 @@ class TestJiraEpicIngestorNormalize:
 # Full run() integration
 # ---------------------------------------------------------------------------
 
+
 class TestJiraSprintIngestorRun:
     def test_run_inserts_sprints_into_db(self, app_config, db_config):
         sprints = {"values": [_make_sprint(200, 42, "Sprint 200", "active")]}
         responses = [_mock_response(sprints), _mock_response({"values": []})]
         ing = JiraSprintIngestor(app_config)
-        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+        with (
+            patch("requests.get", side_effect=responses),
+            patch("src.db.connection.get_config", return_value=db_config),
+        ):
             count = ing.run()
         assert count == 1
 
@@ -538,6 +551,9 @@ class TestJiraIssueIngestorRun:
         empty = {"issues": [], "total": 0}
         responses = [_mock_response(issues), _mock_response(empty)]
         ing = JiraIssueIngestor(app_config)
-        with patch("requests.get", side_effect=responses), patch("src.db.connection.get_config", return_value=db_config):
+        with (
+            patch("requests.get", side_effect=responses),
+            patch("src.db.connection.get_config", return_value=db_config),
+        ):
             count = ing.run()
         assert count == 1
