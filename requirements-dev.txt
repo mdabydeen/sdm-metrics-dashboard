@@ -1,0 +1,7 @@
+# Dev/test dependencies — mirrors [project.optional-dependencies.dev] in pyproject.toml
+-r requirements.txt
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+ruff>=0.1.0
+pre-commit>=3.7.0
