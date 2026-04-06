@@ -1,13 +1,45 @@
+# Python
 *.pyc
+*.pyo
 __pycache__/
 *.egg-info/
+dist/
+build/
+
+# Virtual environments
 .venv/
 venv/
+env/
+
+# Environment / secrets
 .env
 .env.local
+.env.*.local
+
+# Data & database
 data/
 *.db
+*.sqlite
+*.sqlite3
+
+# Test / coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+junit.xml
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editors
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Logs
 *.log
+logs/

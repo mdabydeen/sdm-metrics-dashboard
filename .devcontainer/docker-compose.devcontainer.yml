@@ -1,0 +1,15 @@
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/python:3.11
+    volumes:
+      - ..:/workspace:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: sleep infinity
+    environment:
+      - PYTHONPATH=/workspace
+    networks:
+      - sdm-network
+
+networks:
+  sdm-network:
+    external: true

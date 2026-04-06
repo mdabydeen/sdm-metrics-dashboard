@@ -2,9 +2,8 @@
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
-from src.db.connection import get_db
 
+from src.db.connection import get_db
 
 logger = logging.getLogger(__name__)
 

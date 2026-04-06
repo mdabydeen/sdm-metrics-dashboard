@@ -1,15 +1,12 @@
 """Tests for src/db/connection.py."""
 
-import os
 import sqlite3
-from contextlib import contextmanager
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 import src.config as cfg_module
 from src.db.connection import get_connection, get_db
-
 from tests.conftest import TEAMS_CONFIG
 
 
@@ -78,9 +75,8 @@ class TestGetConnection:
                     raise ImportError("No module named 'psycopg2'")
                 return original_import(name, *args, **kwargs)
 
-            with patch("builtins.__import__", side_effect=mock_import):
-                with pytest.raises(ImportError, match="psycopg2 required"):
-                    get_connection()
+            with patch("builtins.__import__", side_effect=mock_import), pytest.raises(ImportError, match="psycopg2 required"):
+                get_connection()
 
     def test_postgresql_uses_psycopg2(self):
         config = {
@@ -92,9 +88,8 @@ class TestGetConnection:
         mock_psycopg2 = MagicMock()
         mock_psycopg2.connect.return_value = mock_conn
 
-        with patch("src.db.connection.get_config", return_value=config):
-            with patch.dict("sys.modules", {"psycopg2": mock_psycopg2}):
-                conn = get_connection()
+        with patch("src.db.connection.get_config", return_value=config), patch.dict("sys.modules", {"psycopg2": mock_psycopg2}):
+            conn = get_connection()
 
         mock_psycopg2.connect.assert_called_once_with("postgresql://user:pass@localhost/db")
         assert conn is mock_conn
@@ -102,16 +97,15 @@ class TestGetConnection:
 
 class TestGetDb:
     def test_context_manager_yields_connection(self, sqlite_config):
-        with patch("src.db.connection.get_config", return_value=sqlite_config):
-            with get_db() as conn:
-                assert conn is not None
+        with patch("src.db.connection.get_config", return_value=sqlite_config), get_db() as conn:
+            assert conn is not None
 
     def test_context_manager_closes_connection(self, sqlite_config):
         with patch("src.db.connection.get_config", return_value=sqlite_config):
             with get_db() as conn:
                 pass
             # After the context manager exits the connection should be closed
-            with pytest.raises(Exception):
+            with pytest.raises(sqlite3.ProgrammingError):
                 conn.execute("SELECT 1")
 
     def test_context_manager_commits_on_success(self, tmp_path):
@@ -139,10 +133,9 @@ class TestGetDb:
             with get_db() as conn:
                 conn.execute("CREATE TABLE test_r (id INTEGER)")
 
-            with pytest.raises(Exception):
-                with get_db() as conn:
-                    conn.execute("INSERT INTO test_r VALUES (42)")
-                    raise RuntimeError("simulated error")
+            with pytest.raises(RuntimeError), get_db() as conn:
+                conn.execute("INSERT INTO test_r VALUES (42)")
+                raise RuntimeError("simulated error")
 
             # Verify the insert was rolled back
             verify_conn = sqlite3.connect(str(db_file))

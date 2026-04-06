@@ -2,12 +2,12 @@
 
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 import pytest
 
 import src.config as cfg_module
 from src.ingestion.base import BaseIngestor
-
 from tests.conftest import TEAMS_CONFIG
 
 SCHEMA_SQL = Path(__file__).parent.parent / "db" / "schema.sql"
@@ -119,16 +119,14 @@ class TestBaseIngestorRun:
 
     def test_run_raises_on_fetch_failure(self, app_config, db_config):
         ing = FailingFetchIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config):
-            with pytest.raises(ConnectionError, match="API down"):
-                ing.run()
+        with patch("src.db.connection.get_config", return_value=db_config), pytest.raises(ConnectionError, match="API down"):
+            ing.run()
 
     def test_run_logs_start_info(self, app_config, db_config, caplog):
         import logging
         ing = ConcreteIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config):
-            with caplog.at_level(logging.INFO, logger="ConcreteIngestor"):
-                ing.run()
+        with patch("src.db.connection.get_config", return_value=db_config), caplog.at_level(logging.INFO, logger="ConcreteIngestor"):
+            ing.run()
         assert any("Starting ingestion" in m for m in caplog.messages)
 
 
@@ -141,9 +139,8 @@ class TestBaseIngestorUpsert:
 
     def test_upsert_raises_when_no_table_name(self, app_config, db_config):
         ing = NoTableNameIngestor(app_config)
-        with patch("src.db.connection.get_config", return_value=db_config):
-            with pytest.raises(ValueError, match="must define table_name"):
-                ing.upsert([{"id": 1}])
+        with patch("src.db.connection.get_config", return_value=db_config), pytest.raises(ValueError, match="must define table_name"):
+            ing.upsert([{"id": 1}])
 
     def test_upsert_inserts_records(self, app_config, db_config):
         ing = ConcreteIngestor(app_config)

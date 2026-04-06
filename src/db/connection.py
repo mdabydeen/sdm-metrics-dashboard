@@ -1,10 +1,9 @@
-import os
-import sqlite3
 import logging
-from pathlib import Path
+import sqlite3
 from contextlib import contextmanager
-from src.config import get_config
+from pathlib import Path
 
+from src.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +17,8 @@ def get_connection():
         try:
             import psycopg2
             return psycopg2.connect(db_url)
-        except ImportError:
-            raise ImportError("psycopg2 required for PostgreSQL. Install with: pip install psycopg2-binary")
+        except ImportError as e:
+            raise ImportError("psycopg2 required for PostgreSQL. Install with: pip install psycopg2-binary") from e
     else:
         # SQLite
         # Auto-create data directory if it doesn't exist

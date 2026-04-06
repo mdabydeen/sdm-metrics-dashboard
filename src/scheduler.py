@@ -2,17 +2,17 @@
 
 import logging
 import logging.config
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import yaml
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from src.config import get_config
-from src.ingestion.jira import JiraSprintIngestor, JiraIssueIngestor, JiraEpicIngestor
-from src.ingestion.github import GithubPRIngestor, GithubDeploymentIngestor
+from src.ingestion.github import GithubDeploymentIngestor, GithubPRIngestor
+from src.ingestion.jira import JiraEpicIngestor, JiraIssueIngestor, JiraSprintIngestor
 from src.metrics.compute import compute_metrics
-
 
 # Configure logging
 logging_config_path = Path("config/logging.yaml")

@@ -1,0 +1,52 @@
+name: Feature Request
+description: Suggest a new capability or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the pain point or gap this feature addresses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should the feature do? How should it work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you thought about?
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Ingestion (new data source)
+        - Ingestion (existing source improvement)
+        - Metrics / computation
+        - Capacity input app
+        - Grafana dashboard
+        - Docker / infra
+        - CI/CD
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Roadmap phase
+      options:
+        - Phase 1 (MVP)
+        - Phase 2
+        - Phase 3
+        - Future / unplanned
