@@ -22,7 +22,14 @@ def apply_schema():
     with get_db() as conn:
         cursor = conn.cursor()
         try:
-            cursor.executescript(schema_sql)
+            # Split and execute statements individually to preserve
+            # the get_db() context manager's transaction semantics.
+            # executescript() would implicitly commit and bypass our
+            # rollback-on-error guarantee.
+            for statement in schema_sql.split(";"):
+                statement = statement.strip()
+                if statement:
+                    cursor.execute(statement)
             logger.info("Schema applied successfully")
             return True
         except Exception as e:
@@ -66,7 +73,7 @@ def seed_teams():
                 )
                 logger.info(f"Seeded engineer: {engineer['name']}")
 
-        conn.commit()
+        # No explicit commit needed — get_db() context manager commits on success
         logger.info("Teams and engineers seeded")
 
 

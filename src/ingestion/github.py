@@ -1,7 +1,7 @@
 """GitHub data ingestors with pagination."""
 
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import BaseIngestor
 
 
@@ -77,12 +77,15 @@ class GithubPRIngestor(BaseIngestor):
             repo_full = pr.get("_repo_full", "unknown/unknown")
             team_id = repo_team_map.get(repo_full, "unknown")
 
+            # Null-safe user access
+            user = pr.get("user") or {}
+
             normalized.append(
                 {
                     "pr_id": f"{repo_full}#{pr['number']}",
                     "repo": repo_full,
                     "team_id": team_id,
-                    "author": pr.get("user", {}).get("login"),
+                    "author": user.get("login"),
                     "title": pr.get("title", ""),
                     "state": pr.get("state", ""),
                     "additions": pr.get("additions", 0),
@@ -92,7 +95,7 @@ class GithubPRIngestor(BaseIngestor):
                     "first_review_at": None,  # Would need comment timeline
                     "merged_at": pr.get("merged_at"),
                     "closed_at": pr.get("closed_at"),
-                    "synced_at": datetime.utcnow().isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -178,7 +181,7 @@ class GithubDeploymentIngestor(BaseIngestor):
                     "sha": deploy.get("sha", ""),
                     "deployed_at": deploy.get("created_at"),
                     "caused_incident": 0,  # Would need incident tracking
-                    "synced_at": datetime.utcnow().isoformat(),
+                    "synced_at": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
