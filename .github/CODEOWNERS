@@ -1,0 +1,15 @@
+# Default owner for everything
+* @mdabydeen
+
+# CI/CD and infra
+.github/             @mdabydeen
+Dockerfile*          @mdabydeen
+docker-compose*.yml  @mdabydeen
+.devcontainer/       @mdabydeen
+
+# Core ingestion pipeline
+src/ingestion/       @mdabydeen
+src/scheduler.py     @mdabydeen
+
+# Database schema — careful with migrations
+db/                  @mdabydeen
